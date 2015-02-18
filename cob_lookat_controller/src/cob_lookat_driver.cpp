@@ -50,7 +50,15 @@ bool CobLookatDriver::initialize()
 	else
 	{	update_rate_ = 68.0;	}
 	
-	command_vel_sub_ = nh_.subscribe("command_vel", 1, &CobLookatDriver::command_vel_cb, this);
+	if (nh_.hasParam("max_command_silence"))
+	{	nh_.getParam("max_command_silence", max_command_silence_);	}
+	else
+	{	
+		max_command_silence_ = 0.2;
+		ROS_WARN("Setting max_command_silence to default: %f",max_command_silence_);
+	}
+	
+	command_vel_sub_ = nh_.subscribe("joint_group_velocity_contreoller/command", 1, &CobLookatDriver::command_vel_cb, this);
 	jointstate_pub_ = nh_.advertise<sensor_msgs::JointState> ("joint_states", 1);
 	
 	ROS_INFO("...initialized!");
@@ -62,7 +70,12 @@ void CobLookatDriver::run()
 	ros::Rate r(update_rate_);
 	while(ros::ok())
 	{
+		if ((ros::Time::now() - last_velocity_).toSec()>max_command_silence_)
+			for(unsigned int i=0; i<dof_; i++)
+			{	current_vel_[i]=0;	}
+		
 		update_state();
+		last_update_ = ros::Time::now();
 		publish_state();
 		
 		ros::spinOnce();
@@ -110,6 +123,6 @@ void CobLookatDriver::command_vel_cb(const std_msgs::Float64MultiArray::ConstPtr
 		current_vel_[i]=msg->data[i];
 	}
 	
-	last_update_ = ros::Time::now();
+	last_velocity_ = ros::Time::now();
 }
 

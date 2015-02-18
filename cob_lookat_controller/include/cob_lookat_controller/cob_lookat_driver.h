@@ -51,7 +51,9 @@ public:
 	
 	
 	double update_rate_;
+	double max_command_silence_;
 	ros::Time last_update_;
+	ros::Time last_velocity_;
 	
 	unsigned int dof_;
 	std::vector<std::string> joints_;
